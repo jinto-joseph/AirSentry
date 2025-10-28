@@ -148,13 +148,13 @@ This project is licensed under the **MIT License** – see the [LICENSE](LICENSE
 
 ## 👥 Team
 
-- **Jinto Joseph** – [URK24CS1210] – *Full Stack Developer & IoT Engineer*  
+- **Jinto Joseph** – [URK24CS1210]   
 
 ---
 
 ## 🙏 Acknowledgments
 
 - Karunya Institute of Technology and Sciences  
-- Project Guide: *Ms. Roshini Jesintha*  
+- Project Guide: *Ms. Roshini R*  
 - Open-source libraries and cloud service providers  
 - Environmental research communities worldwide  
