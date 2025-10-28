@@ -2,7 +2,7 @@
 
 A scalable, end-to-end IoT system that collects, processes, and visualizes real-time air quality data to empower citizens and policymakers with actionable environmental insights.
 
-![Dashboard](media/image7.png)
+![Dashboard](dash.png)
 
 ## 🚀 Overview
 
@@ -114,7 +114,7 @@ cp .env.example .env
 
 | Real-time Dashboard | Analytics Interface | Alert Management |
 |---------------------|-------------------|------------------|
-| ![Dashboard](media/image7.png) | ![Analytics](media/image9.png) | ![Alerts](media/image13.png) |
+| ![Dashboard](dash.png) | ![Analytics](analytics.png) | ![Alerts](alert.png) |
 
 ---
 
