@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirSentry - Alerts</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Shared Styles */
+        :root { --primary: #8ab4f8; --text-color: #e8eaed; --bg-color: #1a1a1c; --card-bg: #2d2e30; --border-color: #3c4043; --shadow-color: rgba(0, 0, 0, 0.4); --aqi-unhealthy: #F44336; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        .navbar { /* ... same navbar styles ... */ background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 10px 20px; box-shadow: 0 1px 5px var(--shadow-color); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.6rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .nav-links a { color: #bdc1c6; text-decoration: none; padding: 10px 15px; font-size: 0.95rem; }
+        .nav-links a.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+
+        /* Page Specific Layout */
+        .page-container { max-width: 1200px; margin: 25px auto; padding: 0 25px; }
+        h1 { color: var(--primary); margin-bottom: 20px; font-size: 2rem; }
+        .alert-section { background-color: var(--card-bg); border-radius: 10px; padding: 25px; box-shadow: 0 4px 15px var(--shadow-color); margin-bottom: 30px; }
+        .alert-table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 0.95rem; }
+        .alert-table th, .alert-table td { text-align: left; padding: 12px; border-bottom: 1px solid var(--border-color); }
+        .alert-table th { color: #8ab4f8; font-weight: 600; }
+        .status-critical { color: var(--aqi-unhealthy); font-weight: bold; }
+        .status-moderate { color: #ff9f0a; }
+        .status-resolved { color: #4CAF50; }
+        .action-button { background: none; color: #8ab4f8; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="logo"><i class="fas fa-cloud"></i>AirSentry</div>
+            <div class="nav-links">
+                <a href="dashboard.html">Dashboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="maps.html">Maps</a>
+                <a href="reports.html">Reports</a>
+                <a href="alerts.html" class="active">Alerts</a>
+                <a href="admin.html">Admin</a>
+            </div>
+        </div>
+        <div><i class="fas fa-user-circle" style="color: #bdc1c6;"></i></div>
+    </div>
+    <div class="page-container">
+        <h1><i class="fas fa-bell"></i> Alert Management Center</h1>
+
+        <div class="alert-section">
+            <h3 style="color: #ff9f0a; margin-bottom: 15px;"><i class="fas fa-exclamation-triangle"></i> Active Alerts (5)</h3>
+            <table class="alert-table">
+                <thead>
+                    <tr><th>Time</th><th>Location</th><th>Trigger</th><th>Status</th><th>Action</th></tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>12:35 PM</td>
+                        <td>New Delhi, Anand Vihar</td>
+                        <td>PM2.5 > 250 µg/m³</td>
+                        <td class="status-critical">CRITICAL</td>
+                        <td><button class="action-button">Acknowledge</button></td>
+                    </tr>
+                    <tr>
+                        <td>11:45 AM</td>
+                        <td>Mumbai, Deonar</td>
+                        <td>AQI > 200 (Poor)</td>
+                        <td class="status-critical">CRITICAL</td>
+                        <td><button class="action-button">Investigate</button></td>
+                    </tr>
+                     <tr>
+                        <td>09:10 AM</td>
+                        <td>Bengaluru, Bellandur</td>
+                        <td>O₃ Hourly Avg. > 50 ppb</td>
+                        <td class="status-moderate">MODERATE</td>
+                        <td><button class="action-button">View Rule</button></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="alert-section">
+            <h3 style="color: #8ab4f8; margin-bottom: 15px;"><i class="fas fa-cogs"></i> Alert Rules & Thresholds</h3>
+            <p style="color: #bdc1c6;">Configure triggers, severity, and notification channels for system-wide and customized alerts. <a href="#" style="color: #4CAF50;">+ Add New Rule</a></p>
+        </div>
+    </div>
+</body>
+</html>

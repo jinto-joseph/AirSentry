@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirSentry Dashboard - Real-Time Air Quality</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;440;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Leaflet map for interactive map updates -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        /* --- Design System and Global Styles (Same as before for consistency) --- */
+        :root {
+            --primary: #8ab4f8; 
+            --primary-dark: #669df6; 
+            --accent-green: #34c759;
+            --accent-yellow: #ffd60a;
+            --accent-orange: #ff9f0a;
+            --accent-red: #ff453a;
+            
+            --text-color: #e8eaed; 
+            --text-secondary: #bdc1c6; 
+            --bg-color: #1a1a1c; 
+            --card-bg: #2d2e30; 
+            --border-color: #3c4043; 
+            --shadow-color: rgba(0, 0, 0, 0.4); 
+
+            --aqi-good: #4CAF50; 
+            --aqi-moderate: #FFC107; 
+            --aqi-unhealthy-sensitive: #FF9800; 
+            --aqi-unhealthy: #F44336; 
+            --aqi-very-unhealthy: #9C27B0; 
+            --aqi-hazardous: #7B1FA2; 
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            line-height: 1.6;
+        }
+
+        /* Utility Classes */
+        .flex-row { display: flex; align-items: center; }
+        .flex-col { display: flex; flex-direction: column; }
+        .text-primary { color: var(--primary); }
+        .text-secondary-color { color: var(--text-secondary); }
+        .text-danger { color: var(--aqi-unhealthy); }
+        .text-success { color: var(--aqi-good); }
+        .text-warning { color: var(--aqi-unhealthy-sensitive); }
+        .text-center { text-align: center; }
+        .icon-small { font-size: 0.9rem; margin-right: 5px; }
+
+        /* --- Navigation Bar --- */
+        .navbar {
+            background-color: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 10px 20px;
+            box-shadow: 0 1px 5px var(--shadow-color);
+            z-index: 100;
+            position: sticky;
+            top: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .navbar-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .logo {
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .nav-links {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: background-color 0.2s, color 0.2s;
+        }
+
+        .nav-links a.active {
+            color: var(--primary);
+            background-color: transparent;
+            border-bottom: 2px solid var(--primary); 
+            border-radius: 0;
+            padding-bottom: 8px;
+        }
+
+        .search-bar {
+            position: relative;
+            margin-left: 20px;
+        }
+
+        .search-bar select {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 8px 40px 8px 15px; /* Adjust padding for dropdown */
+            color: var(--text-color);
+            font-size: 0.9rem;
+            width: 100%;
+            max-width: 250px;
+            appearance: none; /* Remove default arrow */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            cursor: pointer;
+            transition: border-color 0.2s;
+        }
+        
+        .search-bar:after { /* Custom dropdown arrow */
+            content: "\f0d7"; 
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-secondary);
+            pointer-events: none;
+        }
+
+        .user-menu {
+            gap: 20px;
+            margin-left: auto;
+        }
+        .user-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: var(--primary); 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: white;
+            cursor: pointer;
+            border: 2px solid var(--primary); 
+            box-shadow: 0 0 0 2px rgba(138, 180, 248, 0.3); 
+        }
+
+        /* --- Dashboard Layout --- */
+        .dashboard-container {
+            display: grid;
+            max-width: 1500px;
+            margin: 25px auto;
+            padding: 0 25px;
+            gap: 20px;
+            grid-template-columns: repeat(12, 1fr);
+            grid-template-rows: auto 1fr auto; 
+        }
+
+        .card {
+            background-color: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            position: relative;
+            transition: transform 0.2s ease-in-out;
+        }
+        .card-header {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: var(--text-color);
+        }
+        
+        /* Grid Item Placement */
+        .location-selector { grid-column: span 3; }
+        .current-conditions { grid-column: span 5; }
+        .alert-center { grid-column: span 4; }
+    .map-visualization { grid-column: span 8; grid-row: 2 / 4; aspect-ratio: 16/9; min-height: 280px; max-height: 580px; display: flex; flex-direction: column; }
+        .data-analytics { grid-column: span 4; }
+        .pollutant-breakdown { grid-column: span 4; }
+        .secondary-panels { grid-column: span 4; }
+
+        /* AQI Circle Styling */
+        .aqi-circle {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            font-weight: bold;
+            color: white;
+            box-shadow: 0 0 0 5px rgba(255,255,255,0.1); 
+            animation: pulse-good 2s infinite ease-in-out; 
+        }
+
+        /* Dynamic AQI Colors and Pulse Animation Keyframes */
+        .aqi-good { background-color: var(--aqi-good); animation-name: pulse-good; }
+        .aqi-moderate { background-color: var(--aqi-moderate); animation-name: pulse-moderate; }
+        .aqi-unhealthy-sensitive { background-color: var(--aqi-unhealthy-sensitive); animation-name: pulse-unhealthy-sensitive; }
+        .aqi-unhealthy { background-color: var(--aqi-unhealthy); animation-name: pulse-unhealthy; }
+        .aqi-very-unhealthy { background-color: var(--aqi-very-unhealthy); animation-name: pulse-very-unhealthy; }
+        .aqi-hazardous { background-color: var(--aqi-hazardous); animation-name: pulse-hazardous; }
+
+        @keyframes pulse-good { 0% { box-shadow: 0 0 0 5px rgba(76, 175, 80, 0.3); } 50% { box-shadow: 0 0 0 8px rgba(76, 175, 80, 0.5); } 100% { box-shadow: 0 0 0 5px rgba(76, 175, 80, 0.3); } }
+        @keyframes pulse-moderate { 0% { box-shadow: 0 0 0 5px rgba(255, 193, 7, 0.3); } 50% { box-shadow: 0 0 0 8px rgba(255, 193, 7, 0.5); } 100% { box-shadow: 0 0 0 5px rgba(255, 193, 7, 0.3); } }
+        @keyframes pulse-unhealthy-sensitive { 0% { box-shadow: 0 0 0 5px rgba(255, 152, 0, 0.3); } 50% { box-shadow: 0 0 0 8px rgba(255, 152, 0, 0.5); } 100% { box-shadow: 0 0 0 5px rgba(255, 152, 0, 0.3); } }
+        @keyframes pulse-unhealthy { 0% { box-shadow: 0 0 0 5px rgba(244, 67, 54, 0.3); } 50% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0.5); } 100% { box-shadow: 0 0 0 5px rgba(244, 67, 54, 0.3); } }
+        @keyframes pulse-very-unhealthy { 0% { box-shadow: 0 0 0 5px rgba(156, 39, 176, 0.3); } 50% { box-shadow: 0 0 0 8px rgba(156, 39, 176, 0.5); } 100% { box-shadow: 0 0 0 5px rgba(156, 39, 176, 0.3); } }
+        @keyframes pulse-hazardous { 0% { box-shadow: 0 0 0 5px rgba(123, 31, 162, 0.3); } 50% { box-shadow: 0 0 0 8px rgba(123, 31, 162, 0.5); } 100% { box-shadow: 0 0 0 5px rgba(123, 31, 162, 0.3); } }
+
+        /* Other element styles (Key Metrics, Alerts, Map, Footer) - shortened for brevity */
+        .current-conditions-content { display: flex; align-items: flex-start; gap: 30px; }
+        .aqi-circle span { font-size: 1rem; font-weight: 500; margin-top: 5px; }
+        .metric-item { display: flex; justify-content: space-between; padding: 8px 0; font-size: 0.95rem; border-bottom: 1px dashed var(--border-color); color: var(--text-secondary); }
+        .metric-value { font-weight: 600; color: var(--text-color); }
+        .update-time { font-size: 0.85rem; color: var(--text-secondary); margin-top: 15px; text-align: right; }
+    .map-visualization { background-image: url('map_background.jpg'); background-size: cover; background-position: center; border: none; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; }
+
+    /* Map element fills the card and is responsive */
+    #map { width: 100%; height: 100%; min-height: 260px; border-radius: 8px; }
+
+    /* Fallback/info overlay used while map loads */
+    .map-overlay { position: absolute; left: 20px; top: 20px; z-index: 400; color: var(--text-color); background: rgba(0,0,0,0.25); padding: 8px 12px; border-radius: 8px; font-size: 0.95rem; }
+        .health-recommendations { font-size: 0.9rem; padding: 12px; border-radius: 6px; background-color: rgba(76, 175, 80, 0.15); color: var(--aqi-good); display: flex; align-items: flex-start; gap: 10px; }
+        .health-recommendations.warning { background-color: rgba(255, 152, 0, 0.15); color: var(--aqi-unhealthy-sensitive); }
+        .health-recommendations.danger { background-color: rgba(244, 67, 54, 0.15); color: var(--aqi-unhealthy); }
+        .footer-bar { grid-column: 1 / -1; background-color: var(--card-bg); border-top: 1px solid var(--border-color); padding: 15px 25px; display: flex; justify-content: flex-end; gap: 20px; position: sticky; bottom: 0; width: 100%; max-width: 1500px; margin: 0 auto; left: 50%; transform: translateX(-50%); box-shadow: 0 -2px 10px var(--shadow-color); }
+        .footer-button { background-color: var(--primary); color: white; padding: 10px 20px; border-radius: 6px; font-size: 0.95rem; cursor: pointer; transition: background-color 0.2s, transform 0.1s ease-out; border: none; display: flex; align-items: center; gap: 8px; font-weight: 500; }
+        .footer-button.secondary { background-color: transparent; color: var(--primary); border: 1px solid var(--primary); }
+        .chart-container { height: 220px; width: 100%; margin-bottom: 10px; }
+        /* Responsive styles */
+        @media (max-width: 1024px) {
+            .map-visualization { grid-column: 1 / -1; min-height: 300px; max-height: 450px; grid-row: auto; }
+            .location-selector, .current-conditions, .alert-center, 
+            .data-analytics, .pollutant-breakdown, .secondary-panels { grid-column: span 6; }
+        }
+        @media (max-width: 768px) {
+            .dashboard-container { grid-template-columns: 1fr; }
+            .location-selector, .current-conditions, .alert-center, .map-visualization, 
+            .data-analytics, .pollutant-breakdown, .secondary-panels { grid-column: 1 / -1; }
+            .current-conditions-content { flex-direction: column; align-items: center; text-align: center; gap: 20px;}
+        }
+    </style>
+</head>
+<body class="dark-theme" onload="updateCityData('Delhi')">
+    <div class="navbar">
+        <div class="navbar-left">
+            <div class="logo">
+                <i class="fas fa-cloud"></i>AirSentry
+            </div>
+            <div class="nav-links">
+                <a href="index.html" class="active">Dashboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="maps.html">Maps</a>
+                <a href="reports.html">Reports</a>
+                <a href="alerts.html">Alerts</a>
+                <a href="admin.html">Admin</a>
+            </div>
+        </div>
+        <div class="flex-row">
+            <div class="search-bar">
+                <select id="city-selector" onchange="updateCityData(this.value)">
+                    <option value="Delhi">📍 New Delhi</option>
+                    <option value="Mumbai">📍 Mumbai</option>
+                    <option value="Bengaluru">📍 Bengaluru</option>
+                    <option value="Kolkata">📍 Kolkata</option>
+                    <option value="Chennai">📍 Chennai</option>
+                    <option value="Pune">📍 Pune</option>
+                </select>
+            </div>
+            <div class="user-menu">
+                <i class="fas fa-bell" title="Notifications"></i>
+                <i class="fas fa-cog" title="Settings"></i>
+                <div class="user-avatar" title="User Profile">AD</div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="dashboard-container">
+        
+        <div class="card location-selector">
+            <div class="card-header">
+                Location Overview
+                <i class="fas fa-sync-alt" title="Refresh data"></i>
+            </div>
+            <div class="current-location flex-row">
+                <i class="fas fa-map-marker-alt"></i><span id="location-display">New Delhi</span>
+                <i class="fas fa-chevron-down" style="margin-left: auto;"></i>
+            </div>
+            <ul class="favorites-list">
+                <li><i class="far fa-star"></i> Favorites</li>
+                <li><i class="fas fa-calendar-alt"></i> Historical Data</li>
+                <li><i class="fas fa-city"></i> Nearby Stations</li>
+                <li><i class="fas fa-filter"></i> Pollutant Filter</li>
+            </ul>
+        </div>
+        
+        <div class="card current-conditions">
+            <div class="card-header">
+                Current Air Quality Index (AQI)
+                <i class="fas fa-plus" title="Add to watchlist"></i>
+            </div>
+            <div class="current-conditions-content">
+                <div class="aqi-circle" id="aqiCircle">
+                    <span id="aqiValue">284</span>
+                    <span id="aqiStatus">POOR</span>
+                </div>
+                <div class="key-metrics">
+                    <div class="card-header" style="border-bottom: none; padding-bottom: 0; margin-bottom: 0;">Key Pollutants (μg/m³)</div>
+                    <div class="metric-item">
+                        <span><i class="fas fa-smog"></i> PM2.5</span>
+                        <span class="metric-value" id="pm25Value">150.2</span>
+                    </div>
+                    <div class="metric-item">
+                        <span><i class="fas fa-smog"></i> PM10</span>
+                        <span class="metric-value" id="pm10Value">255.4</span>
+                    </div>
+                    <div class="metric-item">
+                        <span><i class="fas fa-cloud-sun"></i> O₃</span>
+                        <span class="metric-value" id="o3Value">42</span>
+                    </div>
+                    <div class="metric-item">
+                        <span><i class="fas fa-car-side"></i> NO₂</span>
+                        <span class="metric-value" id="no2Value">68</span>
+                    </div>
+                    <div class="metric-item">
+                        <span><i class="fas fa-burn"></i> CO</span>
+                        <span class="metric-value" id="coValue">1.8</span>
+                    </div>
+                </div>
+            </div>
+            <div class="update-time">Last updated <strong class="text-color">0 minutes ago</strong> | Data Source: CPCB</div>
+        </div>
+        
+        <div class="card alert-center">
+            <div class="card-header">
+                Alert Center
+                <i class="fas fa-times" title="Dismiss all alerts"></i>
+            </div>
+            <div class="alert-list" id="alert-list-container">
+                <div class="alert-item">
+                    <i class="fas fa-exclamation-circle text-danger"></i>
+                    <div class="alert-item-content">
+                        <strong>Critical Alert: Poor AQI</strong>
+                        <br>
+                        <span>Avoid all outdoor exertion; levels expected to peak at 320 at 6 PM.</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card map-visualization" style="position:relative;">
+            <div class="map-overlay-buttons">
+                <button class="active">AQI</button>
+                <button>PM2.5</button>
+                <button>Heatmap</button>
+                <button><i class="fas fa-layer-group"></i></button>
+            </div>
+            <div class="map-overlay" id="map-overlay">Map loading…</div>
+            <div id="map"></div>
+        </div>
+        
+        <div class="card data-analytics">
+            <div class="card-header">
+                24-Hour Pollutant Progression
+                <i class="fas fa-chart-line" title="Full analytics view"></i>
+            </div>
+            <div class="chart-container">
+                <canvas id="aqiTrendChart"></canvas>
+            </div>
+            <div class="comparative-analysis">
+                <i class="fas fa-arrow-alt-circle-up text-danger"></i>
+                AQI is <span class="text-danger">higher by 35 points</span> compared to yesterday.
+            </div>
+        </div>
+
+        <div class="card pollutant-breakdown">
+            <div class="card-header">
+                48-Hour Predictive Forecast
+                <i class="fas fa-magic" title="Predictive Model Details"></i>
+            </div>
+            <div class="chart-container">
+                <canvas id="forecastChart"></canvas>
+            </div>
+            <div class="health-recommendations danger" id="health-recommendations">
+                <i class="fas fa-exclamation-triangle fa-lg"></i>
+                <div>
+                    <strong>UNHEALTHY AIR</strong>
+                    <br>
+                    <span>General Public: Avoid heavy outdoor exertion. Sensitive groups: Stay indoors.</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card secondary-panels">
+            <div class="card-header">
+                Network & Sensor Status
+                <i class="fas fa-wifi" title="Network details"></i>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <i class="fas fa-check-circle text-success"></i> <strong>95%</strong> Operational
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-exclamation-triangle text-warning"></i> <strong>3</strong> Under Maintenance
+                </div>
+            </div>
+            
+            <div class="card-header" style="margin-top: 20px;">
+                Data Sources & Integrity
+                <i class="fas fa-database" title="Manage data sources"></i>
+            </div>
+            <div class="status-grid">
+                <div class="status-item">
+                    <i class="fas fa-cloud-upload-alt text-primary"></i> <strong>CPCB API:</strong> Connected
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-link text-success"></i> <strong>IoT Stream:</strong> Active
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-chart-bar text-primary"></i> <strong>Model:</strong> V3.1 (92% Conf.)
+                </div>
+                <div class="status-item">
+                    <i class="fas fa-clock text-secondary-color"></i> <strong>Latency:</strong> 25s Average
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <div class="footer-bar">
+        <button class="footer-button secondary" onclick="handleFooterAction('downloadPdf')">
+            <i class="fas fa-file-pdf"></i> Download PDF Report
+        </button>
+        <button class="footer-button secondary" onclick="handleFooterAction('shareDashboard')">
+            <i class="fas fa-share-alt"></i> Share Live View
+        </button>
+        <button class="footer-button" onclick="handleFooterAction('exportData')">
+            <i class="fas fa-download"></i> Export Raw Data
+        </button>
+    </div>
+
+    <script>
+        // --- DATA OBJECTS for Dynamic Switching (Simulated Indian City Data) ---
+        const cityData = {
+            "Delhi": {
+                aqi: 284, status: "POOR", class: "aqi-unhealthy", 
+                metrics: { pm25: 150.2, pm10: 255.4, o3: 42, no2: 68, co: 1.8 },
+                trends: [200, 220, 250, 284, 260, 240, 230, 250, 270, 280, 290, 284],
+                forecast: [284, 300, 310, 305, 290], // Next 48 hours
+                recommendation: "General Public: Avoid heavy outdoor exertion. Sensitive groups: Stay indoors.",
+                recClass: "danger",
+                alert: "Critical Alert: Poor AQI. Avoid all outdoor exertion; levels expected to peak at 320 at 6 PM."
+            },
+            "Mumbai": {
+                aqi: 139, status: "MODERATE", class: "aqi-unhealthy-sensitive", 
+                metrics: { pm25: 55.0, pm10: 98.5, o3: 35, no2: 25, co: 1.1 },
+                trends: [100, 110, 125, 139, 135, 120, 115, 120, 130, 140, 145, 139],
+                forecast: [139, 155, 160, 150, 140],
+                recommendation: "Unusually sensitive people should limit prolonged outdoor exertion. General public is acceptable.",
+                recClass: "warning",
+                alert: "Moderate Alert: PM2.5 rising near BKC. Sensitive groups should take precautions."
+            },
+            "Bengaluru": {
+                aqi: 72, status: "SATISFACTORY", class: "aqi-moderate", 
+                metrics: { pm25: 25.4, pm10: 57.0, o3: 28, no2: 15, co: 0.8 },
+                trends: [70, 75, 80, 72, 68, 65, 60, 65, 70, 75, 78, 72],
+                forecast: [72, 65, 60, 58, 62],
+                recommendation: "Air quality is acceptable. Air pollution poses little or no risk to the general public.",
+                recClass: "warning",
+                alert: "Satisfactory: No major alerts. Enjoy the good air!"
+            },
+             "Kolkata": {
+                aqi: 170, status: "UNHEALTHY", class: "aqi-unhealthy", 
+                metrics: { pm25: 90.5, pm10: 160.0, o3: 30, no2: 45, co: 1.5 },
+                trends: [140, 155, 170, 175, 165, 150, 145, 155, 160, 170, 175, 170],
+                forecast: [170, 185, 190, 175, 160],
+                recommendation: "Everyone may begin to experience health effects. Limit time outdoors. Sensitive groups should remain indoors.",
+                recClass: "danger",
+                alert: "Unhealthy AQI: All citizens should consider reducing outdoor exertion."
+            },
+             "Chennai": {
+                aqi: 88, status: "SATISFACTORY", class: "aqi-moderate", 
+                metrics: { pm25: 35.5, pm10: 70.0, o3: 32, no2: 22, co: 0.9 },
+                trends: [85, 90, 95, 88, 80, 75, 70, 75, 80, 85, 90, 88],
+                forecast: [88, 95, 105, 115, 110],
+                recommendation: "Air quality is acceptable. Only very small number of people sensitive to air pollution may experience minor concerns.",
+                recClass: "warning",
+                alert: "Satisfactory: Coastal breezes maintaining good dispersion. No major alerts."
+            },
+            "Pune": {
+                aqi: 105, status: "MODERATE", class: "aqi-unhealthy-sensitive", 
+                metrics: { pm25: 45.1, pm10: 85.0, o3: 40, no2: 35, co: 1.2 },
+                trends: [90, 95, 105, 110, 100, 95, 90, 95, 100, 105, 110, 105],
+                forecast: [105, 115, 125, 130, 120],
+                recommendation: "Sensitive groups should consider limiting prolonged outdoor exertion.",
+                recClass: "warning",
+                alert: "Moderate Alert: AQI approaching Unhealthy for Sensitive Groups category."
+            }
+        };
+
+        // --- CHART OBJECTS ---
+        let aqiTrendChart;
+        let forecastChart;
+        // --- MAP OBJECTS ---
+        let map;
+        let mapMarker;
+        const cityCoords = {
+            "Delhi": { lat: 28.644800, lng: 77.216721, zoom: 10 },
+            "Mumbai": { lat: 19.075983, lng: 72.877655, zoom: 10 },
+            "Bengaluru": { lat: 12.971599, lng: 77.594566, zoom: 11 },
+            "Kolkata": { lat: 22.572646, lng: 88.363895, zoom: 10 },
+            "Chennai": { lat: 13.082680, lng: 80.270718, zoom: 11 },
+            "Pune": { lat: 18.520430, lng: 73.856743, zoom: 11 }
+        };
+
+        // Base Chart Options (simplified)
+        const baseOptions = {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { labels: { color: 'var(--text-secondary)', font: { size: 10 } } },
+                tooltip: { backgroundColor: 'var(--card-bg)', titleColor: 'var(--primary)', bodyColor: 'var(--text-color)', borderColor: 'var(--border-color)', borderWidth: 1, cornerRadius: 6, displayColors: false }
+            },
+            scales: {
+                x: { ticks: { color: 'var(--text-secondary)', font: { size: 10 } }, grid: { color: 'var(--border-color)' } },
+                y: { ticks: { color: 'var(--text-secondary)', font: { size: 10 } }, grid: { color: 'var(--border-color)' }, beginAtZero: true }
+            }
+        };
+
+        // --- MAIN UPDATE FUNCTION ---
+        function updateCityData(city) {
+            const data = cityData[city];
+            if (!data) return;
+
+            // 1. Update Core Metrics
+            document.getElementById('location-display').textContent = city;
+            document.getElementById('aqiValue').textContent = data.aqi;
+            document.getElementById('aqiStatus').textContent = data.status.toUpperCase();
+            document.getElementById('aqiCircle').className = 'aqi-circle ' + data.class;
+            
+            document.getElementById('pm25Value').textContent = data.metrics.pm25.toFixed(1);
+            document.getElementById('pm10Value').textContent = data.metrics.pm10.toFixed(1);
+            document.getElementById('o3Value').textContent = data.metrics.o3;
+            document.getElementById('no2Value').textContent = data.metrics.no2;
+            document.getElementById('coValue').textContent = data.metrics.co.toFixed(1);
+
+            // 2. Update Health Recommendations
+            const recElement = document.getElementById('health-recommendations');
+            recElement.className = 'health-recommendations ' + data.recClass;
+            recElement.querySelector('span').textContent = data.recommendation;
+
+            // 3. Update Alerts (Simple simulation)
+            document.getElementById('alert-list-container').innerHTML = `
+                <div class="alert-item ${data.recClass}">
+                    <i class="fas fa-exclamation-circle text-${data.recClass === 'danger' ? 'danger' : 'warning'}"></i>
+                    <div class="alert-item-content">
+                        <strong>${data.status} Alert: ${city}</strong>
+                        <br>
+                        <span>${data.alert}</span>
+                    </div>
+                </div>
+            `;
+
+            // 4. Update Charts
+            updateAqiTrendChart(data.trends, data.class);
+            updateForecastChart(data.forecast);
+
+            // 5. Update interactive map: recenter and move marker
+            try {
+                const coords = cityCoords[city];
+                if (coords && map) {
+                    map.setView([coords.lat, coords.lng], coords.zoom);
+                    if (mapMarker) mapMarker.setLatLng([coords.lat, coords.lng]);
+                    const overlay = document.getElementById('map-overlay');
+                    if (overlay) overlay.style.display = 'none';
+                }
+                // also update overlay text for quick info
+                const overlay = document.getElementById('map-overlay');
+                if (overlay) overlay.textContent = `${city} — AQI ${data.aqi} (${data.status})`;
+            } catch (e) {
+                console.warn('Map update failed', e);
+            }
+
+            // 6. Update Maps page link so it opens centered on the currently selected city
+            try {
+                const navLinks = document.querySelectorAll('.nav-links a');
+                navLinks.forEach(a => {
+                    if (a.textContent && a.textContent.trim() === 'Maps') {
+                        a.href = `maps.html?city=${encodeURIComponent(city)}`;
+                    }
+                });
+            } catch (e) { /* ignore if nav not present */ }
+
+            // Persist selected city for other pages (maps page can read this)
+            try {
+                sessionStorage.setItem('selectedCity', city);
+            } catch (e) { /* ignore if storage not available */ }
+        }
+
+        // --- CHART FUNCTIONS ---
+        function updateAqiTrendChart(data, aqiClass) {
+            const ctx = document.getElementById('aqiTrendChart').getContext('2d');
+            const color = getComputedStyle(document.documentElement).getPropertyValue(`--${aqiClass}`).trim();
+
+            if (aqiTrendChart) aqiTrendChart.destroy();
+
+            aqiTrendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['06:00', '08:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00', '22:00', '00:00', '02:00', '04:00'],
+                    datasets: [{
+                        label: 'AQI',
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: `${color}33`, // Add transparency for fill
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 4,
+                        pointBackgroundColor: color,
+                        pointBorderColor: 'var(--card-bg)',
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    ...baseOptions,
+                    plugins: { ...baseOptions.plugins, legend: { display: false } },
+                    scales: {
+                        x: baseOptions.scales.x,
+                        y: { ...baseOptions.scales.y, min: Math.min(...data) - 10, max: Math.max(...data) + 10 }
+                    }
+                }
+            });
+        }
+
+        function updateForecastChart(data) {
+            const ctx = document.getElementById('forecastChart').getContext('2d');
+            const labels = ['Now', '6 Hrs', '12 Hrs', '24 Hrs', '48 Hrs'];
+            
+            // Determine forecast status color for the line
+            const forecastClass = data[4] > 200 ? 'aqi-unhealthy' : data[4] > 100 ? 'aqi-unhealthy-sensitive' : 'aqi-moderate';
+            const color = getComputedStyle(document.documentElement).getPropertyValue(`--${forecastClass}`).trim();
+
+            if (forecastChart) forecastChart.destroy();
+
+            forecastChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Predicted AQI',
+                        data: data,
+                        backgroundColor: [
+                            'var(--primary)', // Color for 'Now'
+                            `${color}99`, 
+                            `${color}AA`,
+                            `${color}BB`,
+                            color
+                        ],
+                        borderColor: color,
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    ...baseOptions,
+                    plugins: { ...baseOptions.plugins, legend: { display: false } },
+                    scales: {
+                        x: baseOptions.scales.x,
+                        y: { ...baseOptions.scales.y, min: 0, max: Math.max(...data) + 50 }
+                    }
+                }
+            });
+        }
+
+        // Initialize map and charts on load
+        function initMap() {
+            try {
+                map = L.map('map', { preferCanvas: true }).setView([cityCoords['Delhi'].lat, cityCoords['Delhi'].lng], cityCoords['Delhi'].zoom);
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    maxZoom: 19,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+                mapMarker = L.marker([cityCoords['Delhi'].lat, cityCoords['Delhi'].lng]).addTo(map);
+                const overlay = document.getElementById('map-overlay');
+                if (overlay) overlay.style.display = 'none';
+            } catch (e) {
+                const overlay = document.getElementById('map-overlay');
+                if (overlay) overlay.textContent = 'Map unavailable';
+                console.warn('Leaflet init failed', e);
+            }
+        }
+
+        // Initialize charts and map on load
+        window.onload = function() {
+            initMap();
+            updateCityData(document.getElementById('city-selector').value);
+            // ensure charts resize to fit card
+            window.setTimeout(() => {
+                if (aqiTrendChart) aqiTrendChart.resize();
+                if (forecastChart) forecastChart.resize();
+                if (map && map.invalidateSize) map.invalidateSize();
+            }, 300);
+        };
+        
+        // Function to handle navigation and simulate page changes
+        function handleFooterAction(action) {
+            switch (action) {
+                case 'downloadPdf': alert('Generating PDF report...'); break;
+                case 'shareDashboard': alert('Live view link copied to clipboard!'); break;
+                case 'exportData': alert('Exporting raw data for ' + document.getElementById('location-display').textContent + '...'); break;
+            }
+        }
+    </script>
+</body>
+</html>

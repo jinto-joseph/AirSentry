@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirSentry - Maps</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;440;500;600;700&display=swap" rel="stylesheet">
+        <!-- Leaflet for interactive maps (no API key required) -->
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        /* Shared Styles */
+        :root { --primary: #8ab4f8; --text-color: #e8eaed; --bg-color: #1a1a1c; --card-bg: #2d2e30; --border-color: #3c4043; --shadow-color: rgba(0, 0, 0, 0.4); }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        .navbar { background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 10px 20px; box-shadow: 0 1px 5px var(--shadow-color); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.6rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .nav-links { display: flex; align-items: center; gap: 5px; }
+        .nav-links a { color: #bdc1c6; text-decoration: none; padding: 10px 15px; border-radius: 6px; font-size: 0.95rem; font-weight: 500; transition: background-color 0.2s, color 0.2s; }
+        .nav-links a.active { color: var(--primary); background-color: transparent; border-bottom: 2px solid var(--primary); border-radius: 0; padding-bottom: 8px; }
+
+        /* Page Specific Layout */
+        .page-container { 
+            max-width: 1500px; 
+            margin: 25px auto; 
+            padding: 0 25px; 
+            display: flex; 
+            flex-direction: column;
+            height: calc(100vh - 120px); 
+        }
+        h1 { color: var(--primary); margin-bottom: 20px; font-size: 2rem; }
+        .map-wrapper { 
+            display: grid; 
+            grid-template-columns: 3fr 1fr; 
+            gap: 20px; 
+            flex-grow: 1; 
+        }
+        
+        /* Google Map Container */
+        #map { 
+            background-color: #3c4043; 
+            border-radius: 10px; 
+            position: relative; 
+            overflow: hidden; 
+            height: 100%; 
+            width: 100%;
+            min-height: 400px; 
+            box-shadow: 0 4px 15px var(--shadow-color);
+        }
+
+        .map-overlay-controls {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            z-index: 1000; 
+            background: rgba(0,0,0,0.6);
+            padding: 8px;
+            border-radius: 8px;
+            display: flex;
+            gap: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+            align-items: center;
+        }
+        .map-overlay-controls button {
+            background-color: #5f6368;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background-color 0.2s;
+        }
+        .map-overlay-controls button.active,
+        .map-overlay-controls button:hover {
+            background-color: var(--primary);
+        }
+        .map-overlay-controls select {
+            background-color: var(--bg-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            cursor: pointer;
+            min-width: 150px;
+        }
+        
+        .sidebar { background-color: var(--card-bg); border-radius: 10px; padding: 20px; box-shadow: 0 4px 15px var(--shadow-color); }
+        .sidebar-item { border-bottom: 1px solid var(--border-color); padding: 15px 0; display: flex; justify-content: space-between; align-items: center; }
+        .legend-color { width: 15px; height: 15px; border-radius: 3px; margin-right: 10px; }
+        
+        /* AQI Colors for Legend */
+        .aqi-good { background-color: #4CAF50; } 
+        .aqi-moderate { background-color: #FFC107; } 
+        .aqi-unhealthy-sensitive { background-color: #FF9800; } 
+        .aqi-unhealthy { background-color: #F44336; } 
+        .aqi-very-unhealthy { background-color: #9C27B0; } 
+        .aqi-hazardous { background-color: #7B1FA2; }
+
+        /* Responsive styles */
+        @media (max-width: 1024px) {
+            .map-wrapper { grid-template-columns: 1fr; flex-direction: column; }
+            #map { min-height: 450px; }
+            .page-container { height: auto; } 
+            .map-overlay-controls { 
+                flex-wrap: wrap; 
+                justify-content: center;
+                width: calc(100% - 30px); /* Adjust for padding */
+                left: 15px; 
+                right: 15px; 
+                top: 15px;
+            }
+            .map-overlay-controls select { margin-top: 8px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="logo"><i class="fas fa-cloud"></i>AirSentry</div>
+            <div class="nav-links">
+                <a href="index.html">Dashboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="maps.html" class="active">Maps</a>
+                <a href="reports.html">Reports</a>
+                <a href="alerts.html">Alerts</a>
+                <a href="admin.html">Admin</a>
+            </div>
+        </div>
+        <div><i class="fas fa-user-circle" style="color: #bdc1c6;"></i></div>
+    </div>
+    <div class="page-container">
+        <h1><i class="fas fa-map-marked-alt"></i> Interactive Sensor Network Map</h1>
+        
+        <div class="map-wrapper">
+            <div id="map">
+                <div class="map-overlay-controls">
+                    <select id="map-city-selector" onchange="changeMapLocation(this.value)">
+                        <option value="Delhi">New Delhi</option>
+                        <option value="Mumbai">Mumbai</option>
+                        <option value="Bengaluru">Bengaluru</option>
+                        <option value="Kolkata">Kolkata</option>
+                        <option value="Chennai">Chennai</option>
+                        <option value="Pune">Pune</option>
+                    </select>
+                    <button class="active">AQI</button>
+                    <button>PM2.5</button>
+                    <button>Heatmap</button>
+                    <button><i class="fas fa-layer-group"></i></button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <h3 style="color: var(--primary); margin-bottom: 15px;">Map Layers & Legend</h3>
+                <div class="sidebar-item">
+                    <span>Active Sensors (450/475)</span>
+                    <i class="fas fa-check-circle" style="color: #4CAF50;"></i>
+                </div>
+                <div class="sidebar-item">
+                    <span>Road Traffic Overlay</span>
+                    <i class="fas fa-toggle-on" style="color: var(--primary);"></i>
+                </div>
+                <div class="sidebar-item">
+                    <span>Wind Patterns (m/s)</span>
+                    <i class="fas fa-wind" style="color: #bdc1c6;"></i>
+                </div>
+                
+                <h3 style="color: #ff9f0a; margin-top: 20px; margin-bottom: 10px;">AQI Scale (India Standard)</h3>
+                <div class="sidebar-item">
+                    <div class="legend-color aqi-good"></div>
+                    <span>0-50 (Good)</span>
+                </div>
+                <div class="sidebar-item">
+                    <div class="legend-color aqi-moderate"></div>
+                    <span>51-100 (Satisfactory)</span>
+                </div>
+                <div class="sidebar-item">
+                    <div class="legend-color aqi-unhealthy-sensitive"></div>
+                    <span>101-200 (Moderate)</span>
+                </div>
+                <div class="sidebar-item">
+                    <div class="legend-color aqi-unhealthy"></div>
+                    <span>201-300 (Poor)</span>
+                </div>
+                <div class="sidebar-item">
+                    <div class="legend-color aqi-very-unhealthy"></div>
+                    <span>301-400 (Very Poor)</span>
+                </div>
+                <div class="sidebar-item">
+                    <div class="legend-color aqi-hazardous"></div>
+                    <span>401-500+ (Severe)</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Leaflet-based map implementation with per-station markers
+        let map;
+        let markers = [];
+
+        // City center info and sample station lists for each city
+        const cityMapData = {
+            "Delhi": { lat: 28.6139, lng: 77.2090, zoom: 11 },
+            "Mumbai": { lat: 19.0760, lng: 72.8777, zoom: 11 },
+            "Bengaluru": { lat: 12.9716, lng: 77.5946, zoom: 11 },
+            "Kolkata": { lat: 22.5726, lng: 88.3639, zoom: 11 },
+            "Chennai": { lat: 13.0827, lng: 80.2707, zoom: 11 },
+            "Pune": { lat: 18.5204, lng: 73.8567, zoom: 11 }
+        };
+
+        // Sample stations per city (latitude, longitude, sample AQI, PM2.5)
+        const cityStations = {
+            "Delhi": [
+                { name: 'RK Puram Sensor', lat: 28.5934, lng: 77.1760, aqi: 290, pm25: 155 },
+                { name: 'Anand Vihar', lat: 28.6663, lng: 77.3150, aqi: 275, pm25: 140 },
+                { name: 'Patel Nagar', lat: 28.6519, lng: 77.1606, aqi: 280, pm25: 148 }
+            ],
+            "Mumbai": [
+                { name: 'BKC Sensor', lat: 19.0675, lng: 72.8732, aqi: 150, pm25: 60 },
+                { name: 'Andheri', lat: 19.1198, lng: 72.8466, aqi: 130, pm25: 48 }
+            ],
+            "Bengaluru": [
+                { name: 'Koramangala', lat: 12.9352, lng: 77.6245, aqi: 70, pm25: 22 },
+                { name: 'Whitefield', lat: 12.9693, lng: 77.7490, aqi: 75, pm25: 25 }
+            ],
+            "Kolkata": [
+                { name: 'Salt Lake', lat: 22.5720, lng: 88.3974, aqi: 165, pm25: 88 },
+                { name: 'Howrah', lat: 22.5958, lng: 88.2636, aqi: 175, pm25: 95 }
+            ],
+            "Chennai": [
+                { name: 'T Nagar', lat: 13.0409, lng: 80.2420, aqi: 90, pm25: 36 },
+                { name: 'Adyar', lat: 12.9884, lng: 80.2542, aqi: 85, pm25: 33 }
+            ],
+            "Pune": [
+                { name: 'Pimpri', lat: 18.5822, lng: 73.7820, aqi: 110, pm25: 48 },
+                { name: 'Kothrud', lat: 18.4957, lng: 73.8209, aqi: 100, pm25: 42 }
+            ]
+        };
+
+        function getColorForAqi(aqi) {
+            if (aqi <= 50) return '#4CAF50';
+            if (aqi <= 100) return '#FFC107';
+            if (aqi <= 200) return '#FF9800';
+            if (aqi <= 300) return '#F44336';
+            if (aqi <= 400) return '#9C27B0';
+            return '#7B1FA2';
+        }
+
+        function initMap() {
+            // Pick city from ?city= or sessionStorage (set by dashboard) or default
+            const urlParams = new URLSearchParams(window.location.search);
+            const cityParam = urlParams.get('city');
+            const stored = (() => { try { return sessionStorage.getItem('selectedCity'); } catch (e) { return null; } })();
+            const initialCity = (cityParam && cityMapData[cityParam]) ? cityParam : (stored && cityMapData[stored]) ? stored : 'Delhi';
+
+            const c = cityMapData[initialCity];
+            map = L.map('map', { preferCanvas: true }).setView([c.lat, c.lng], c.zoom);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap contributors' }).addTo(map);
+
+            // Add initial markers
+            changeMapLocation(initialCity);
+
+            // Ensure selector matches
+            const sel = document.getElementById('map-city-selector');
+            if (sel) sel.value = initialCity;
+        }
+
+        function clearMarkers() {
+            markers.forEach(m => { try { map.removeLayer(m); } catch (e) {} });
+            markers = [];
+        }
+
+        function changeMapLocation(cityName) {
+            const data = cityMapData[cityName];
+            if (!data || !map) return;
+
+            map.setView([data.lat, data.lng], data.zoom);
+            clearMarkers();
+
+            const stations = cityStations[cityName] || [];
+            stations.forEach((s, idx) => {
+                const color = getColorForAqi(s.aqi);
+                const marker = L.circleMarker([s.lat, s.lng], { radius: 8, color: '#000', weight: 1, fillColor: color, fillOpacity: 0.9 }).addTo(map);
+                const popupHtml = `
+                    <div style="font-family: Inter, sans-serif;">
+                        <strong>${s.name}</strong><br/>
+                        AQI: <strong>${s.aqi}</strong><br/>
+                        PM2.5: ${s.pm25} µg/m³<br/>
+                        <a href="index.html?city=${encodeURIComponent(cityName)}" style="color:#1a73e8; text-decoration:none;">Open Dashboard</a>
+                    </div>
+                `;
+                marker.bindPopup(popupHtml);
+                markers.push(marker);
+            });
+
+            // store selection so dashboard/map stay in sync across tabs
+            try { sessionStorage.setItem('selectedCity', cityName); } catch (e) {}
+        }
+
+        // Wire the selector to update map and session state
+        document.addEventListener('DOMContentLoaded', () => {
+            const sel = document.getElementById('map-city-selector');
+            if (sel) sel.addEventListener('change', (e) => {
+                const city = e.target.value;
+                changeMapLocation(city);
+            });
+            // Init the map
+            initMap();
+            // Ensure map resizes properly after layout
+            setTimeout(() => { try { map.invalidateSize(); } catch (e) {} }, 250);
+        });
+    </script>
+</body>
+</html>

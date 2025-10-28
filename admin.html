@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirSentry - Admin</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* Shared Styles */
+        :root { --primary: #8ab4f8; --text-color: #e8eaed; --bg-color: #1a1a1c; --card-bg: #2d2e30; --border-color: #3c4043; --shadow-color: rgba(0, 0, 0, 0.4); }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        .navbar { /* ... same navbar styles ... */ background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 10px 20px; box-shadow: 0 1px 5px var(--shadow-color); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.6rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .nav-links a { color: #bdc1c6; text-decoration: none; padding: 10px 15px; font-size: 0.95rem; }
+        .nav-links a.active { color: var(--primary); border-bottom: 2px solid var(--primary); }
+
+        /* Page Specific Layout */
+        .page-container { max-width: 1200px; margin: 25px auto; padding: 0 25px; }
+        h1 { color: var(--primary); margin-bottom: 20px; font-size: 2rem; }
+    .admin-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
+    .admin-card { background-color: var(--card-bg); border-radius: 10px; padding: 25px; box-shadow: 0 4px 15px var(--shadow-color); }
+        .admin-card h3 { color: #ff9f0a; margin-bottom: 15px; }
+        .user-list, .system-list { list-style: none; padding: 0; }
+        .user-list li, .system-list li { padding: 12px 0; border-bottom: 1px dashed var(--border-color); display: flex; justify-content: space-between; color: #bdc1c6; }
+        .user-list li strong { color: #e8eaed; }
+        .status-online { color: #4CAF50; }
+        .status-offline { color: #F44336; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="logo"><i class="fas fa-cloud"></i>AirSentry</div>
+            <div class="nav-links">
+                <a href="index.html">Dashboard</a>
+                <a href="analytics.html">Analytics</a>
+                <a href="maps.html">Maps</a>
+                <a href="reports.html">Reports</a>
+                <a href="alerts.html">Alerts</a>
+                <a href="admin.html" class="active">Admin</a>
+            </div>
+        </div>
+        <div><i class="fas fa-user-circle" style="color: #bdc1c6;"></i></div>
+    </div>
+    <div class="page-container">
+        <h1><i class="fas fa-users-cog"></i> System Administration Panel</h1>
+
+        <div class="admin-grid">
+            <div class="admin-card">
+                <h3>User & Role Management</h3>
+                <ul class="user-list">
+                    <li><strong>Dr. A Sharma</strong><span>Admin <i class="fas fa-check-circle status-online"></i></span></li>
+                    <li><strong>Ravi Kumar</strong><span>Analyst</span></li>
+                    <li><strong>Priya Singh</strong><span>Guest</span></li>
+                </ul>
+                <div style="margin-top: 15px;"><a href="#" style="color: #4CAF50;"><i class="fas fa-user-plus"></i> Add New User</a></div>
+            </div>
+
+            <div class="admin-card">
+                <h3>Sensor Network Health</h3>
+                 <ul class="system-list">
+                    <li><strong>Total Units</strong><span>475 Active</span></li>
+                    <li><strong>Data Integrity</strong><span>99.8%</span></li>
+                    <li><strong>API Key Expiry</strong><span>120 Days</span></li>
+                </ul>
+                <div style="margin-top: 15px;"><a href="#" style="color: #8ab4f8;"><i class="fas fa-cogs"></i> Configure Network</a></div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

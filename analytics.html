@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirSentry - Analytics</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;440;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        /* Shared Styles for Consistency */
+        :root { --primary: #8ab4f8; --text-color: #e8eaed; --bg-color: #1a1a1c; --card-bg: #2d2e30; --border-color: #3c4043; --shadow-color: rgba(0, 0, 0, 0.4); }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--text-color); margin: 0; padding: 0; }
+        .navbar { background-color: var(--card-bg); border-bottom: 1px solid var(--border-color); padding: 10px 20px; box-shadow: 0 1px 5px var(--shadow-color); display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 1.6rem; font-weight: 700; color: var(--primary); display: flex; align-items: center; gap: 8px; }
+        .nav-links a { color: #bdc1c6; text-decoration: none; padding: 10px 15px; border-radius: 6px; font-size: 0.95rem; font-weight: 500; }
+        .nav-links a.active { color: var(--primary); border-bottom: 2px solid var(--primary); border-radius: 0; padding-bottom: 8px; }
+
+        /* Page Specific Layout */
+        .page-container { max-width: 1500px; margin: 25px auto; padding: 0 25px; }
+    .card-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; margin-top: 20px; }
+    .card { background-color: var(--card-bg); border: 1px solid var(--border-color); border-radius: 10px; padding: 20px; box-shadow: 0 4px 15px var(--shadow-color); height: auto; min-height: 260px; }
+        h1 { color: var(--primary); margin-bottom: 20px; font-size: 2rem; }
+        .metric-box { background-color: #3c4043; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+        .metric-box h3 { font-size: 1.5rem; color: #ff9f0a; }
+        .metric-box p { color: #bdc1c6; }
+    </style>
+</head>
+<body>
+    <div class="navbar">
+        <div style="display: flex; align-items: center; gap: 20px;">
+            <div class="logo"><i class="fas fa-cloud"></i>AirSentry</div>
+            <div class="nav-links">
+                <a href="index.html">Dashboard</a>
+                <a href="analytics.html" class="active">Analytics</a>
+                <a href="maps.html">Maps</a>
+                <a href="reports.html">Reports</a>
+                <a href="alerts.html">Alerts</a>
+                <a href="admin.html">Admin</a>
+            </div>
+        </div>
+        <div><i class="fas fa-user-circle" style="color: #bdc1c6;"></i></div>
+    </div>
+    <div class="page-container">
+        <h1><i class="fas fa-chart-line"></i> Advanced Analytics: Long-Term Trends</h1>
+        <div class="metric-box">
+            <h3>Focus: PM2.5 Annual Comparison (Delhi)</h3>
+            <p>Analyzing average PM2.5 concentrations over the last three years to identify seasonal and structural changes. <a href="#" style="color: #8ab4f8;">Generate Report</a></p>
+        </div>
+
+        <div class="card-grid">
+            <div class="card">
+                <h3 style="color: #bdc1c6; font-size: 1.1rem;">Monthly Average AQI (Last 12 Months)</h3>
+                <canvas id="monthlyAqiChart"></canvas>
+            </div>
+            <div class="card">
+                <h3 style="color: #bdc1c6; font-size: 1.1rem;">Pollutant Correlation Matrix</h3>
+                <canvas id="correlationChart"></canvas>
+            </div>
+            <div class="card">
+                <h3 style="color: #bdc1c6; font-size: 1.1rem;">48-Hour Source Contribution Breakdown</h3>
+                <canvas id="sourceChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data for charts
+        const chartData = {
+            monthlyAqi: [150, 180, 210, 160, 120, 90, 85, 110, 140, 190, 240, 260],
+            correlationData: {
+                labels: ['PM2.5', 'PM10', 'O3', 'NO2', 'Temp'],
+                datasets: [{
+                    label: 'Correlation Index',
+                    data: [0.95, 0.88, 0.45, 0.65, -0.30], // Correlation values
+                    backgroundColor: ['#ff453a', '#ff453a', '#8ab4f8', '#8ab4f8', '#4CAF50'],
+                }]
+            },
+            sourceContribution: [35, 25, 20, 10, 10]
+        };
+
+        // Monthly AQI Chart
+        new Chart(document.getElementById('monthlyAqiChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: ['Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct'],
+                datasets: [{
+                    label: 'AQI',
+                    data: chartData.monthlyAqi,
+                    borderColor: '#FF9800',
+                    backgroundColor: 'rgba(255, 152, 0, 0.2)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#bdc1c6' } }, y: { ticks: { color: '#bdc1c6' } } } }
+        });
+
+        // Correlation Chart
+        new Chart(document.getElementById('correlationChart').getContext('2d'), {
+            type: 'bar',
+            data: chartData.correlationData,
+            options: { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { min: -1, max: 1, ticks: { color: '#bdc1c6' } }, y: { ticks: { color: '#bdc1c6' } } } }
+        });
+
+        // Source Contribution Chart
+        new Chart(document.getElementById('sourceChart').getContext('2d'), {
+            type: 'pie',
+            data: {
+                labels: ['Vehicular', 'Industrial', 'Road Dust', 'Stubble Burning', 'Domestic'],
+                datasets: [{
+                    data: chartData.sourceContribution,
+                    backgroundColor: ['#8ab4f8', '#ff453a', '#ff9f0a', '#4CAF50', '#bdc1c6']
+                }]
+            },
+            options: { plugins: { legend: { labels: { color: '#bdc1c6' } } } }
+        });
+    </script>
+</body>
+</html>
